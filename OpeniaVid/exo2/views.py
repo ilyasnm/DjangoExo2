@@ -1,7 +1,6 @@
 from django.shortcuts import render
 import json
-from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, HttpResponseBadRequest
 from rest_framework.decorators import authentication_classes, permission_classes
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, parser_classes
@@ -10,12 +9,13 @@ import openai
 from django.utils import timezone
 import subprocess
 import os
-from django.http import HttpResponseBadRequest, JsonResponse
 import datetime
-
+from notion.client import NotionClient
+from notion.block import PageBlock, TextBlock
+import moviepy.editor as mp
 
 MAX_VIDEO_SIZE = 4 * 1024 * 1024  # 4 MB
-openai.api_key = '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'
+openai.api_key = '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'
 
 
 def analyze_video(video_content):
@@ -35,8 +35,19 @@ def analyze_video(video_content):
     if file_size > MAX_VIDEO_SIZE:
         os.remove("video_temp.mp4")
         return HttpResponseBadRequest("La taille du fichier vidéo dépasse la limite autorisée.")
+    
 
     # Étape 4: Extraire l'audio de la vidéo
+    video_filename = "video_temp.mp4"
+    video = mp.VideoFileClip(video_filename)
+    has_audio = video.audio is not None
+    video.close()
+
+    if not has_audio:
+        os.remove(video_filename)
+        os.remove(audio_filename)
+        return JsonResponse({'message': 'Impossible analyser le son de la video.'}, status=400)
+
     audio_filename = "audio_temp.wav"
     extract_audio_command = f'ffmpeg -i video_temp.mp4 -vn -acodec pcm_s16le -ar 44100 -ac 2 {audio_filename}'
     os.system(extract_audio_command)
@@ -58,8 +69,6 @@ def upload_video(request):
         video_file = request.FILES.get('video')
         content_type = video_file.content_type
         file_size = video_file.size
-        if not video_file:
-            return JsonResponse({'message': 'Le fichier video est manquant.'}, status=400)
        
         # Vérifier le format du fichier vidéo
         valid_formats = ['video/mp4', 'video/mpeg', 'audio/mp4', 'video/webm']
@@ -100,19 +109,22 @@ def upload_video(request):
             
             #Vérifier si le fichier existe déjà
             if os.path.exists(output_file_path):
-            # Trouver un nom de fichier disponible en ajoutant un suffixe numérique
-              suffix_num = 1
-            while os.path.exists(output_file_path):
-             output_file_path = f"{output_file_path_base}_{suffix_num}{output_file_path_ext}"
-             suffix_num += 1
+                # Trouver un nom de fichier disponible en ajoutant un suffixe numérique
+                suffix_num = 1
+                while os.path.exists(output_file_path):
+                    output_file_path = f"{output_file_path_base}_{suffix_num}{output_file_path_ext}"
+                    suffix_num += 1
 
-
-           # Enregistrer la transcription dans un fichier texte
+            # Enregistrer la transcription dans un fichier texte
             with open(output_file_path, 'w') as output_file:
-             output_file.write(transcription)
+                output_file.write(transcription)
 
-            return JsonResponse({'message': 'Video telechargee et audio analyse avec succes.'})
-        else:
-            return JsonResponse({'message': 'Impossible analyser le son de la video.'}, status=400)
+            return JsonResponse({'message': 'Video telechargee et audio analyse avec succes.', 'transcription_file': output_file_path})
     else:
         return JsonResponse({'message': 'Methode de requête invalide.'}, status=405)
+
+
+
+
+def index(request):
+    return render(request, 'index.html')

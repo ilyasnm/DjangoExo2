@@ -1,0 +1,27 @@
+body {
+    font-family: Arial, sans-serif;
+  }
+  
+  h1 {
+    text-align: center;
+  }
+  
+  form {
+    text-align: center;
+    margin: 20px auto;
+  }
+  
+  input[type="file"] {
+    margin-right: 10px;
+  }
+  
+  button[type="submit"] {
+    padding: 10px 20px;
+  }
+  
+  #message {
+    text-align: center;
+    margin-top: 20px;
+    font-weight: bold;
+  }
+  

@@ -29,9 +29,11 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     #path('exo2/', include('OpeniaVid.urls')),
-     path('', upload_video, name='home'),
+    path('', views.index, name='index'),
+    path('upload/', views.upload_video, name='upload_video'),
+    #path('', upload_video, name='home'),
     path('admin/', admin.site.urls),
-    path('upload/', upload_video, name='upload_video'),
+   
     
     
 ]
